@@ -188,8 +188,8 @@
       <left_joint>left_wheel_joint</left_joint>
       <right_joint>right_wheel_joint</right_joint>
 
-      <wheel_separation>0.3</wheel_separation>
-      <wheel_diameter>0.1</wheel_diameter>
+      <wheel_separation>${base_width + 2 * wheel_ygap}</wheel_separation>
+      <wheel_diameter>${2 * wheel_radius}</wheel_diameter>
 
       <max_wheel_torque>20</max_wheel_torque>
       <max_wheel_acceleration>1.0</max_wheel_acceleration>

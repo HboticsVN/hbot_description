@@ -223,8 +223,8 @@
       <update_rate>30</update_rate>
       <left_joint>left_wheel_joint</left_joint>
       <right_joint>right_wheel_joint</right_joint>
-      <wheel_separation>0.3</wheel_separation>
-      <wheel_diameter>0.1</wheel_diameter>
+      <wheel_separation>0.17</wheel_separation>
+      <wheel_diameter>0.065</wheel_diameter>
       <max_wheel_torque>20</max_wheel_torque>
       <max_wheel_acceleration>1.0</max_wheel_acceleration>
       <command_topic>cmd_vel</command_topic>
