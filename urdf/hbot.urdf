@@ -156,6 +156,13 @@
     <child link="front_caster"/>
     <origin rpy="0 0 0" xyz="0.07 0.0 -0.07250000000000001"/>
   </joint>
+  <gazebo reference="front_caster">
+    <mu1 value="0.001"/>
+    <mu2 value="0.001"/>
+    <kp value="1000000.0"/>
+    <kd value="1.0"/>
+    <material>Gazebo/Cyan</material>
+  </gazebo>
   <!-- Lidar -->
   <link name="laser">
     <visual>
