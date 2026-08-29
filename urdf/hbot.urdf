@@ -34,30 +34,46 @@
   <material name="white">
     <color rgba="1 1 1 1"/>
   </material>
+  <!-- ==========================================================================
+       Kinematic constants.
+
+       These are kept in sync with the *real* robot so the simulation exercises
+       the same frame layout and diff-drive geometry Nav2 / Cartographer see on
+       hardware:
+         - frame tree matches src/hbot_bringup/config/hbot.urdf (the URDF
+           robot_state_publisher loads on the Pi): base_footprint == base_link,
+           laser at (0.08, 0, 0.14), imu_link at the base origin.
+         - wheel_separation / wheel_diameter match the Yahboom driver params
+           in src/hbot_bringup/config/yahboom_driver_params.yaml
+           (wheel_track: 0.2, wheel_diameter: 0.065).
+       ========================================================================== -->
+  <!-- wheels sit behind the body centre -->
   <link name="base_footprint"/>
   <joint name="base_joint" type="fixed">
     <parent link="base_footprint"/>
     <child link="base_link"/>
-    <origin rpy="0 0 0" xyz="0 0 0.0825"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
   </joint>
   <link name="base_link">
     <visual>
+      <origin rpy="0 0 0" xyz="0 0 0.075"/>
       <geometry>
-        <box size="0.17 0.14 0.12"/>
+        <box size="0.17 0.14 0.11"/>
       </geometry>
       <material name="Cyan">
         <color rgba="0 1 1 1"/>
       </material>
     </visual>
     <collision>
+      <origin rpy="0 0 0" xyz="0 0 0.075"/>
       <geometry>
-        <box size="0.17 0.14 0.12"/>
+        <box size="0.17 0.14 0.11"/>
       </geometry>
     </collision>
     <inertial>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="0 0 0" xyz="0 0 0.075"/>
       <mass value="0.5"/>
-      <inertia ixx="0.0014166666666666668" ixy="0.0" ixz="0.0" iyy="0.0018041666666666668" iyz="0.0" izz="0.0020208333333333337"/>
+      <inertia ixx="0.0013208333333333336" ixy="0.0" ixz="0.0" iyy="0.0017083333333333336" iyz="0.0" izz="0.0020208333333333337"/>
     </inertial>
   </link>
   <gazebo reference="base_link">
@@ -91,7 +107,7 @@
   <joint name="left_wheel_joint" type="continuous">
     <parent link="base_link"/>
     <child link="left_wheel_link"/>
-    <origin rpy="0 0 0" xyz="-0.05 0.085 -0.05"/>
+    <origin rpy="0 0 0" xyz="-0.05 0.1 0.0325"/>
     <axis xyz="0 1 0"/>
   </joint>
   <gazebo reference="left_wheel_link">
@@ -125,7 +141,7 @@
   <joint name="right_wheel_joint" type="continuous">
     <parent link="base_link"/>
     <child link="right_wheel_link"/>
-    <origin rpy="0 0 0" xyz="-0.05 -0.085 -0.05"/>
+    <origin rpy="0 0 0" xyz="-0.05 -0.1 0.0325"/>
     <axis xyz="0 1 0"/>
   </joint>
   <gazebo reference="right_wheel_link">
@@ -154,7 +170,7 @@
   <joint name="front_caster_joint" type="fixed">
     <parent link="base_link"/>
     <child link="front_caster"/>
-    <origin rpy="0 0 0" xyz="0.07 0.0 -0.07250000000000001"/>
+    <origin rpy="0 0 0" xyz="0.07 0.0 0.01"/>
   </joint>
   <gazebo reference="front_caster">
     <mu1 value="0.001"/>
@@ -186,25 +202,27 @@
   <joint name="lidar_joint" type="fixed">
     <parent link="base_link"/>
     <child link="laser"/>
-    <origin rpy="0 0 3.14" xyz="0 0 0.075"/>
+    <origin rpy="0 0 0" xyz="0.08 0 0.14"/>
   </joint>
   <gazebo reference="laser">
     <sensor name="lidar" type="ray">
       <always_on>true</always_on>
       <visualize>false</visualize>
+      <!-- YDLidar X3: ~10 Hz, 360 deg, ~0.12-12 m usable range
+           (see src/ydlidar_x3/.../params/ydlidar_x3.yaml) -->
       <update_rate>10</update_rate>
       <ray>
         <scan>
           <horizontal>
             <samples>360</samples>
             <resolution>1</resolution>
-            <min_angle>-3.14</min_angle>
-            <max_angle>3.14</max_angle>
+            <min_angle>-3.141592653589793</min_angle>
+            <max_angle>3.141592653589793</max_angle>
           </horizontal>
         </scan>
         <range>
-          <min>0.25</min>
-          <max>6.0</max>
+          <min>0.12</min>
+          <max>12.0</max>
           <resolution>0.02</resolution>
         </range>
         <noise>
@@ -225,12 +243,36 @@
   <gazebo reference="laser">
     <material>Gazebo/Yellow</material>
   </gazebo>
+  <!-- IMU - frame matches config/hbot.urdf on the Pi. The EKF only runs on
+       hardware (base_bringup.launch.py); in sim the diff-drive plugin
+       publishes odom->base_footprint directly, but the sensor is kept so the
+       fused-odometry path can be exercised in sim if desired. -->
+  <link name="imu_link"/>
+  <joint name="imu_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="imu_link"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+  </joint>
+  <gazebo reference="imu_link">
+    <sensor name="imu_sensor" type="imu">
+      <always_on>true</always_on>
+      <update_rate>200</update_rate>
+      <visualize>false</visualize>
+      <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
+        <ros>
+          <remapping>~/out:=imu</remapping>
+        </ros>
+        <initial_orientation_as_reference>false</initial_orientation_as_reference>
+        <frame_name>imu_link</frame_name>
+      </plugin>
+    </sensor>
+  </gazebo>
   <gazebo>
     <plugin filename="libgazebo_ros_diff_drive.so" name="two_front_wheeled_diff_drive">
       <update_rate>30</update_rate>
       <left_joint>left_wheel_joint</left_joint>
       <right_joint>right_wheel_joint</right_joint>
-      <wheel_separation>0.17</wheel_separation>
+      <wheel_separation>0.2</wheel_separation>
       <wheel_diameter>0.065</wheel_diameter>
       <max_wheel_torque>20</max_wheel_torque>
       <max_wheel_acceleration>1.0</max_wheel_acceleration>
