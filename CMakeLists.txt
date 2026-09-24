@@ -11,16 +11,12 @@ find_package(ament_cmake REQUIRED)
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
 
-message(STATUS ${CMAKE_SOURCE_DIR}/urdf)
-install(CODE "
-    execute_process(
-    COMMAND bash -c \"xacro hbot.urdf.xacro > hbot.urdf && gz sdf -p hbot.urdf > hbot.sdf\"
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/urdf
-    )"
-  DESTINATION share/${PROJECT_NAME}
-)
+# Generate urdf/hbot.urdf (real robot) + urdf/hbot_sim.urdf (Gazebo) from
+# hbot.urdf.xacro before urdf/ is installed.
+install(CODE "set(HBOT_URDF_DIR \"${CMAKE_CURRENT_SOURCE_DIR}/urdf\")")
+install(SCRIPT cmake/generate_urdf.cmake)
 
-install(DIRECTORY launch rviz urdf
+install(DIRECTORY launch meshes rviz urdf
   DESTINATION share/${PROJECT_NAME}
 )
 ament_package()

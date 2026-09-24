@@ -1,0 +1,113 @@
+<?xml version="1.0" ?>
+<!-- Gazebo (classic) extensions for hbot.urdf.xacro: materials, contact
+     parameters, lidar + IMU sensors and the diff-drive plugin. Included from
+     hbot.urdf.xacro, which defines every property used here. -->
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <gazebo reference="base_link">
+    <material>Gazebo/Grey</material>
+  </gazebo>
+
+  <gazebo reference="left_wheel_link">
+    <material>Gazebo/Black</material>
+  </gazebo>
+  <gazebo reference="right_wheel_link">
+    <material>Gazebo/Black</material>
+  </gazebo>
+
+  <gazebo reference="front_caster">
+    <mu1 value="0.001"/>
+    <mu2 value="0.001"/>
+    <kp value="1000000.0" />
+    <kd value="1.0" />
+  </gazebo>
+
+  <!-- YDLidar X3: 360 deg, 0.12-8 m, 3 kHz sampling at ~8 Hz scan rate
+       -> 3000 / 8 = 375 samples per revolution. -->
+  <xacro:property name="lidar_rate"      value="8"/>
+  <xacro:property name="lidar_samples"   value="375"/>
+  <xacro:property name="lidar_range_min" value="0.12"/>
+  <xacro:property name="lidar_range_max" value="8.0"/>
+
+  <gazebo reference="laser">
+    <material>Gazebo/DarkGrey</material>
+    <sensor name="lidar" type="ray">
+      <always_on>true</always_on>
+      <visualize>false</visualize>
+      <update_rate>${lidar_rate}</update_rate>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>${lidar_samples}</samples>
+            <resolution>1</resolution>
+            <min_angle>-3.141592653589793</min_angle>
+            <max_angle>3.141592653589793</max_angle>
+          </horizontal>
+        </scan>
+        <range>
+          <min>${lidar_range_min}</min>
+          <max>${lidar_range_max}</max>
+          <resolution>0.01</resolution>
+        </range>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.01</stddev>
+        </noise>
+      </ray>
+      <plugin name="scan" filename="libgazebo_ros_ray_sensor.so">
+        <ros>
+          <remapping>~/out:=scan</remapping>
+        </ros>
+        <output_type>sensor_msgs/LaserScan</output_type>
+        <frame_name>laser</frame_name>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <!-- The EKF only runs on hardware (base_bringup.launch.py); in sim the
+       diff-drive plugin publishes odom->base_footprint directly, but the IMU
+       is kept so the fused-odometry path can be exercised in sim if desired. -->
+  <gazebo reference="imu_link">
+    <sensor name="imu_sensor" type="imu">
+      <always_on>true</always_on>
+      <update_rate>200</update_rate>
+      <visualize>false</visualize>
+      <plugin name="imu_plugin" filename="libgazebo_ros_imu_sensor.so">
+        <ros>
+          <remapping>~/out:=imu</remapping>
+        </ros>
+        <initial_orientation_as_reference>false</initial_orientation_as_reference>
+        <frame_name>imu_link</frame_name>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <gazebo>
+    <plugin name="two_front_wheeled_diff_drive" filename="libgazebo_ros_diff_drive.so">
+      <update_rate>30</update_rate>
+
+      <left_joint>left_wheel_joint</left_joint>
+      <right_joint>right_wheel_joint</right_joint>
+
+      <wheel_separation>${wheel_separation}</wheel_separation>
+      <wheel_diameter>${2 * wheel_radius}</wheel_diameter>
+
+      <max_wheel_torque>20</max_wheel_torque>
+      <max_wheel_acceleration>1.0</max_wheel_acceleration>
+
+      <command_topic>cmd_vel</command_topic>
+
+      <publish_odom>true</publish_odom>
+      <publish_odom_tf>true</publish_odom_tf>
+      <publish_wheel_tf>true</publish_wheel_tf>
+
+      <odometry_topic>odom</odometry_topic>
+      <odometry_frame>odom</odometry_frame>
+      <robot_base_frame>base_footprint</robot_base_frame>
+
+      <odometry_source>1</odometry_source>
+    </plugin>
+  </gazebo>
+
+</robot>

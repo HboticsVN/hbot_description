@@ -1,6 +1,7 @@
 import launch
 from launch.substitutions import LaunchConfiguration, Command
 import launch_ros
+from launch_ros.parameter_descriptions import ParameterValue
 import os
 
 def generate_launch_description():
@@ -15,7 +16,10 @@ def generate_launch_description():
     executable='robot_state_publisher',
     name='robot_state_publisher',
     parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time'),
-        'robot_description': Command(['xacro', ' ', LaunchConfiguration('model')])}]
+        'robot_description': ParameterValue(
+            Command(['xacro', ' ', LaunchConfiguration('model'),
+                     ' sim:=', LaunchConfiguration('sim')]),
+            value_type=str)}]
   )
 
   rviz_node = launch_ros.actions.Node(
@@ -33,9 +37,11 @@ def generate_launch_description():
                                           description='Absolute path to rviz config file'),
     launch.actions.DeclareLaunchArgument(name='rviz', default_value='false',
                                           description='Open RViz?'),
+    launch.actions.DeclareLaunchArgument(name='sim', default_value='false',
+                                          description='false: real-robot frames only (hbot.urdf); '
+                                                      'true: full Gazebo model (hbot_sim.urdf)'),
     launch.actions.DeclareLaunchArgument(name='use_sim_time', default_value='false',
         description='Use simulation (Gazebo) clock if true'),
-    # joint_state_publisher_node,
     robot_state_publisher_node,
     rviz_node
   ])

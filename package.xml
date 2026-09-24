@@ -3,7 +3,7 @@
 <package format="3">
   <name>hbot_description</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>URDF/xacro model and CAD meshes of the HBOT differential-drive AMR</description>
   <maintainer email="huyhust13@gmail.com">huy</maintainer>
   <license>TODO: License declaration</license>
 
@@ -16,5 +16,7 @@
 
   <export>
     <build_type>ament_cmake</build_type>
+    <!-- lets Gazebo resolve package://hbot_description/meshes/... -->
+    <gazebo_ros gazebo_model_path="${prefix}/.."/>
   </export>
 </package>

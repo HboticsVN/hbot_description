@@ -1,0 +1,117 @@
+<?xml version="1.0" ?>
+<!-- Physical body of the HBOT: mesh visuals, primitive collisions, inertias,
+     wheels and caster. Only used for the simulation model (sim:=true);
+     the real-robot hbot.urdf is just the TF frames SLAM/Nav2 need.
+     Macros only - instantiated from hbot.urdf.xacro, which defines every
+     property used here. -->
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <!-- Chassis collision box: the CAD chassis bounds without lidar and caster.
+       Its top (~0.117 m) stays below the lidar scan plane (~0.137 m) so the
+       simulated rays never hit the robot's own body. -->
+  <xacro:property name="body_length" value="${cad_body_max_x - cad_body_min_x}"/>
+  <xacro:property name="body_width"  value="${cad_body_max_y - cad_body_min_y}"/>
+  <xacro:property name="body_height" value="${cad_body_max_z - cad_body_min_z}"/>
+  <xacro:property name="body_center" value="${(cad_body_max_x + cad_body_min_x)/2} ${(cad_body_max_y + cad_body_min_y)/2} ${(cad_body_max_z + cad_body_min_z)/2}"/>
+
+  <!-- Masses (kg) - estimates, kept close to the previous box model so the
+       tuned Gazebo diff-drive behaviour does not change. -->
+  <xacro:property name="base_mass"  value="0.5"/>
+  <xacro:property name="wheel_mass" value="0.1"/>
+  <xacro:property name="lidar_mass" value="0.1"/>
+
+  <!-- Contents of the base_link link -->
+  <xacro:macro name="base_body">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://hbot_description/meshes/base_link.stl"/>
+      </geometry>
+      <material name="gray"/>
+    </visual>
+    <collision>
+      <origin xyz="${body_center}" rpy="0 0 0"/>
+      <geometry>
+        <box size="${body_length} ${body_width} ${body_height}"/>
+      </geometry>
+    </collision>
+    <xacro:solid_cuboid_inertial
+      rpy="0 0 0" xyz="${body_center}" mass="${base_mass}"
+      x="${body_length}" y="${body_width}" z="${body_height}"
+    />
+  </xacro:macro>
+
+  <!-- Contents of the laser link. meshes/lidar.stl is already expressed in
+       the laser frame; the lidar top is 8 mm above the scan plane (see
+       scripts/prepare_meshes.py). -->
+  <xacro:macro name="lidar_body">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://hbot_description/meshes/lidar.stl"/>
+      </geometry>
+      <material name="dark_gray"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 ${0.008 - cad_lidar_height/2}" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="${cad_lidar_head_radius}" length="${cad_lidar_height}"/>
+      </geometry>
+    </collision>
+    <xacro:solid_cylinder_inertial
+      rpy="0 0 0" xyz="0 0 ${0.008 - cad_lidar_height/2}" mass="${lidar_mass}"
+      radius="${cad_lidar_head_radius}" length="${cad_lidar_height}"
+    />
+  </xacro:macro>
+
+  <!-- Wheel. meshes/wheel.stl is the LEFT wheel (hub facing the chassis);
+       the right one is the same mesh turned 180 deg about z. -->
+  <xacro:macro name="wheel" params="prefix y_reflect mesh_yaw">
+    <link name="${prefix}_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 ${mesh_yaw}"/>
+        <geometry>
+          <mesh filename="package://hbot_description/meshes/wheel.stl"/>
+        </geometry>
+        <material name="black"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        </geometry>
+      </collision>
+      <xacro:solid_cylinder_inertial
+        rpy="${pi/2} 0 0" xyz="0 0 0" mass="${wheel_mass}"
+        radius="${wheel_radius}" length="${wheel_width}"
+      />
+    </link>
+
+    <joint name="${prefix}_joint" type="continuous">
+      <parent link="base_link"/>
+      <child link="${prefix}_link"/>
+      <origin xyz="0 ${y_reflect*wheel_separation/2} ${wheel_radius}" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
+    </joint>
+  </xacro:macro>
+
+  <!-- Caster ball. Its visual is part of base_link.stl; this link only
+       carries the frictionless contact sphere for Gazebo. -->
+  <xacro:macro name="caster">
+    <link name="front_caster">
+      <collision>
+        <geometry>
+          <sphere radius="${cad_caster_radius}"/>
+        </geometry>
+      </collision>
+      <xacro:null_inertial/>
+    </link>
+
+    <joint name="front_caster_joint" type="fixed">
+      <parent link="base_link"/>
+      <child link="front_caster"/>
+      <origin xyz="${cad_caster_x} ${cad_caster_y} ${cad_caster_radius}" rpy="0 0 0"/>
+    </joint>
+  </xacro:macro>
+
+</robot>
