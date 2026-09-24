@@ -49,3 +49,9 @@ qtcreator-*
 
 # Catkin custom files
 CATKIN_IGNORE
+
+# Generated at build time into build/ (CMakeLists.txt) - never commit
+urdf/hbot.urdf
+urdf/hbot_sim.urdf
+urdf/*.sdf
+__pycache__/

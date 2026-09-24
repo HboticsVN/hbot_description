@@ -1,7 +1,8 @@
 <?xml version="1.0" ?>
-<!-- Gazebo (classic) extensions for hbot.urdf.xacro: materials, contact
-     parameters, lidar + IMU sensors and the diff-drive plugin. Included from
-     hbot.urdf.xacro, which defines every property used here. -->
+<!-- Gazebo (classic) extensions: materials, contact parameters, lidar + IMU
+     sensor plugins and the diff-drive plugin. Included from hbot.urdf.xacro
+     only with use_sim:=true, which defines every property used here
+     (lidar specs: `lidar_sensor` in config/hbot_geometry.yaml). -->
 <robot xmlns:xacro="http://ros.org/wiki/xacro">
 
   <gazebo reference="base_link">
@@ -24,35 +25,32 @@
 
   <!-- YDLidar X3: 360 deg, 0.12-8 m, 3 kHz sampling at ~8 Hz scan rate
        -> 3000 / 8 = 375 samples per revolution. -->
-  <xacro:property name="lidar_rate"      value="8"/>
-  <xacro:property name="lidar_samples"   value="375"/>
-  <xacro:property name="lidar_range_min" value="0.12"/>
-  <xacro:property name="lidar_range_max" value="8.0"/>
+  <xacro:property name="lidar" value="${geo.lidar_sensor}"/>
 
   <gazebo reference="laser">
     <material>Gazebo/DarkGrey</material>
     <sensor name="lidar" type="ray">
       <always_on>true</always_on>
       <visualize>false</visualize>
-      <update_rate>${lidar_rate}</update_rate>
+      <update_rate>${lidar.rate}</update_rate>
       <ray>
         <scan>
           <horizontal>
-            <samples>${lidar_samples}</samples>
+            <samples>${lidar.samples}</samples>
             <resolution>1</resolution>
             <min_angle>-3.141592653589793</min_angle>
             <max_angle>3.141592653589793</max_angle>
           </horizontal>
         </scan>
         <range>
-          <min>${lidar_range_min}</min>
-          <max>${lidar_range_max}</max>
+          <min>${lidar.range_min}</min>
+          <max>${lidar.range_max}</max>
           <resolution>0.01</resolution>
         </range>
         <noise>
           <type>gaussian</type>
           <mean>0.0</mean>
-          <stddev>0.01</stddev>
+          <stddev>${lidar.noise_stddev}</stddev>
         </noise>
       </ray>
       <plugin name="scan" filename="libgazebo_ros_ray_sensor.so">

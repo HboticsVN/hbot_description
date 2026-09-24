@@ -1,0 +1,51 @@
+<?xml version="1.0" ?>
+<!-- HBOT sensor frames: the YDLidar X3 (`laser`) and the Rosmaster IMU
+     (`imu_link`). Shared by the real robot and the simulation; the Gazebo
+     sensor plugins for these links are in hbot.gazebo.xacro.
+     Macros only - instantiated from hbot.urdf.xacro. -->
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <!-- The `laser` frame sits on the scan plane. meshes/lidar.stl is already
+       expressed in this frame; the lidar top is 8 mm above the scan plane
+       (SCAN_PLANE_BELOW_TOP in scripts/prepare_meshes.py). -->
+  <xacro:property name="lidar_top_above_scan" value="0.008"/>
+
+  <xacro:macro name="laser_sensor">
+    <link name="laser">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="package://hbot_description/meshes/lidar.stl"/>
+        </geometry>
+        <material name="dark_gray"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 ${lidar_top_above_scan - cad_lidar_height/2}" rpy="0 0 0"/>
+        <geometry>
+          <cylinder radius="${cad_lidar_head_radius}" length="${cad_lidar_height}"/>
+        </geometry>
+      </collision>
+      <xacro:solid_cylinder_inertial
+        rpy="0 0 0" xyz="0 0 ${lidar_top_above_scan - cad_lidar_height/2}" mass="${geo.mass.lidar}"
+        radius="${cad_lidar_head_radius}" length="${cad_lidar_height}"
+      />
+    </link>
+
+    <joint name="lidar_joint" type="fixed">
+      <parent link="base_link"/>
+      <child link="laser"/>
+      <origin xyz="${laser_x} ${laser_y} ${laser_z}" rpy="0 0 ${laser_yaw}"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:macro name="imu_sensor">
+    <link name="imu_link"/>
+
+    <joint name="imu_joint" type="fixed">
+      <parent link="base_link"/>
+      <child link="imu_link"/>
+      <origin xyz="${geo.imu.x} ${geo.imu.y} ${geo.imu.z}" rpy="0 0 0"/>
+    </joint>
+  </xacro:macro>
+
+</robot>

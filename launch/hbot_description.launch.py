@@ -1,47 +1,32 @@
-import launch
-from launch.substitutions import LaunchConfiguration, Command
-import launch_ros
-from launch_ros.parameter_descriptions import ParameterValue
+"""Deprecated: kept so existing commands keep working. Use instead
+
+  description.launch.py   robot_state_publisher only (include it from bringup)
+  view.launch.py          + joint_state_publisher + RViz
+
+This wrapper maps the old `sim` argument to `use_sim` and runs view.launch.py
+(RViz off by default, as before).
+"""
+
 import os
 
+from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration
+
+
 def generate_launch_description():
-  pkg_share = launch_ros.substitutions.FindPackageShare(package='hbot_description').find('hbot_description')
-  default_model_path = os.path.join(pkg_share, 'urdf', 'hbot.urdf.xacro')
-  default_rviz_config_path = os.path.join(pkg_share, 'rviz', 'hbot.rviz')
-
-  print('default_model_path : {}'.format(default_model_path))
-
-  robot_state_publisher_node = launch_ros.actions.Node(
-    package='robot_state_publisher',
-    executable='robot_state_publisher',
-    name='robot_state_publisher',
-    parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time'),
-        'robot_description': ParameterValue(
-            Command(['xacro', ' ', LaunchConfiguration('model'),
-                     ' sim:=', LaunchConfiguration('sim')]),
-            value_type=str)}]
-  )
-
-  rviz_node = launch_ros.actions.Node(
-    package='rviz2',
-    executable='rviz2',
-    name='rviz2',
-    output='screen',
-    arguments=['-d', LaunchConfiguration('rvizconfig')],
-    condition=launch.conditions.IfCondition(LaunchConfiguration('rviz'))
-  )
-  return launch.LaunchDescription([
-    launch.actions.DeclareLaunchArgument(name='model', default_value=default_model_path,
-                                          description='Absolute path to robot urdf file'),
-    launch.actions.DeclareLaunchArgument(name='rvizconfig', default_value=default_rviz_config_path,
-                                          description='Absolute path to rviz config file'),
-    launch.actions.DeclareLaunchArgument(name='rviz', default_value='false',
-                                          description='Open RViz?'),
-    launch.actions.DeclareLaunchArgument(name='sim', default_value='false',
-                                          description='false: real-robot frames only (hbot.urdf); '
-                                                      'true: full Gazebo model (hbot_sim.urdf)'),
-    launch.actions.DeclareLaunchArgument(name='use_sim_time', default_value='false',
-        description='Use simulation (Gazebo) clock if true'),
-    robot_state_publisher_node,
-    rviz_node
+  pkg_share = get_package_share_directory('hbot_description')
+  return LaunchDescription([
+    DeclareLaunchArgument('sim', default_value='false',
+                          description='Deprecated alias of use_sim'),
+    DeclareLaunchArgument('rviz', default_value='false', description='Open RViz'),
+    IncludeLaunchDescription(
+      PythonLaunchDescriptionSource(
+        os.path.join(pkg_share, 'launch', 'view.launch.py')),
+      launch_arguments={
+        'use_sim': LaunchConfiguration('sim'),
+        'rviz': LaunchConfiguration('rviz'),
+      }.items()),
   ])
