@@ -6,7 +6,7 @@
 <robot xmlns:xacro="http://ros.org/wiki/xacro">
 
   <gazebo reference="base_link">
-    <material>Gazebo/Grey</material>
+    <material>Gazebo/Blue</material>
   </gazebo>
 
   <gazebo reference="left_wheel_link">

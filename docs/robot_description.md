@@ -284,6 +284,7 @@ Humble, host laptop:
 | Lidar spec in sim (rate, samples, range, noise) | `config/hbot_geometry.yaml` `lidar_sensor` | build → sim smoke |
 | A new link / sensor frame (camera, bumper) | new macro in `hbot_sensors.xacro`, instantiate it in `hbot.urdf.xacro` | build → test |
 | Its Gazebo plugin | `hbot.gazebo.xacro` | build → sim smoke |
+| Colour of a part | Gazebo: `<gazebo reference="<link>"><material>Gazebo/…</material>` in `hbot.gazebo.xacro` (names from `/usr/share/gazebo-11/media/materials/scripts/gazebo.material`, e.g. `Gazebo/Blue`); RViz: the `<material name="…"/>` of the link's `<visual>` (colours in `materials.xacro`). `base_link` is blue in both | build → restart Gazebo (a running sim keeps the spawned model) |
 | Sim-only physics (friction, torque, update rates) | `hbot.gazebo.xacro` | build → sim smoke (the real robot is not affected) |
 | CAD re-export | `models/*.stl` → `scripts/prepare_meshes.py --preview …` ([`cad_model.md`](cad_model.md) Step 7) | build → test |
 | Deploy | nothing extra | `deploy-to-pi`; `hbot.urdf` is built from the same xacro |

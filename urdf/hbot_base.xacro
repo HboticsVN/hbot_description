@@ -30,7 +30,7 @@
         <geometry>
           <mesh filename="package://hbot_description/meshes/base_link.stl"/>
         </geometry>
-        <material name="gray"/>
+        <material name="blue"/>
       </visual>
       <collision>
         <origin xyz="${body_center}" rpy="0 0 0"/>
