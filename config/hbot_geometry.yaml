@@ -14,8 +14,8 @@
 
 wheels:
   track: 0.190        # tyre centre to tyre centre, measured on the robot (CAD: 0.1827)
-  radius: cad         # 0.0337 in the CAD
-  width: cad          # 0.0306 in the CAD
+  radius: 0.03375         # 0.0337 in the CAD
+  width: 0.0265          # 0.0306 in the CAD
 
 caster:
   x: cad              # ball centre, forward of the drive axle
