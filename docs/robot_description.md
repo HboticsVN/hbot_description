@@ -248,7 +248,7 @@ colcon test-result --verbose
 | `test_lidar_matches_geometry` | Gazebo ray sensor not matching `lidar_sensor` |
 | `test_scan_plane_clears_the_body` | chassis collision box reaching the scan plane (self-hits in sim) |
 | `test_meshes_exist` | a `package://` mesh that isn't in `meshes/` |
-| `test_driver_wheel_track_matches` | `yahboom_driver_params.yaml` `wheel_track` ≠ `hbot_geometry.yaml` (skipped when `hbot_bringup` isn't built) |
+| `test_driver_wheels_match` | `yahboom_driver_params.yaml` `wheel_track` / `wheel_diameter` ≠ `hbot_geometry.yaml` (skipped when `hbot_bringup` isn't built) |
 
 ## Step 7: Validation results (2026-09-25)
 
@@ -263,8 +263,9 @@ Humble, host laptop:
 - Nothing is written to `src/hbot_description/urdf/`; the generated files are
   in `build/hbot_description/urdf/` and linked from `install/`.
 - `colcon test`: 8 passed, 1 skipped (driver check, `hbot_bringup` not in that
-  install). With the workspace `install/` sourced, the driver check **fails as
-  intended**: `wheel_track=0.2` vs `wheels.track=0.19` (see Step 9).
+  install). With the workspace `install/` sourced, the driver check **failed as
+  intended** (`wheel_track=0.2` vs `wheels.track=0.19`). After the
+  `hbot_bringup` update (Step 9): 9 passed.
 - `description.launch.py` on `ROS_DOMAIN_ID=42`: `base_footprint→left_wheel_link
   (0, 0.095, 0.034)`, `base_footprint→laser (0.043, 0, 0.137)`, published as
   static TF with fixed wheels.
@@ -279,7 +280,7 @@ Humble, host laptop:
 
 | Change | Edit | Then run |
 |---|---|---|
-| A measured dimension (track, laser pose, IMU pose, mass) | `config/hbot_geometry.yaml` | build → `colcon test` → sim smoke; for the track also the driver params (Step 9) |
+| A measured dimension (track, laser pose, IMU pose, mass) | `config/hbot_geometry.yaml` | build → `colcon test` → sim smoke; for the wheels also the driver params (Step 9) |
 | Lidar spec in sim (rate, samples, range, noise) | `config/hbot_geometry.yaml` `lidar_sensor` | build → sim smoke |
 | A new link / sensor frame (camera, bumper) | new macro in `hbot_sensors.xacro`, instantiate it in `hbot.urdf.xacro` | build → test |
 | Its Gazebo plugin | `hbot.gazebo.xacro` | build → sim smoke |
@@ -290,35 +291,37 @@ Humble, host laptop:
 Smoke tests: `ROS_DOMAIN_ID=42 ./scripts/dev_sim_smoke.sh 35` (a private domain,
 because the script publishes `/cmd_vel`).
 
-## Step 9: Follow-ups outside this package (not done on this branch)
+## Step 9: Follow-ups outside this package
 
-1. **Driver wheel track, needed now.**
-   `hbot_bringup/config/yahboom_driver_params.yaml` has `wheel_track: 0.2`; the
-   robot measures 0.190. Set `wheel_track: 0.19`. With 0.2 the odometry
-   under-reports every turn by ~5 % (and the robot turns ~5 % more than
-   `/cmd_vel` asks), and `test_driver_wheel_track_matches` fails.
-2. **Wheel diameter.** The driver uses `wheel_diameter: 0.065` (nominal); the
-   CAD tyre is 0.0674. Measure it (e.g. drive 1 m straight and compare
-   odometry), then put the value in both `hbot_geometry.yaml` (`wheels.radius`)
-   and the driver params.
-3. **Consumers move to launch-time xacro (optional).** Replace the
-   file-reading code with an include of `description.launch.py`:
+Done on `feat/standard-description` in `hbot_bringup` (see
+[`hbot_bringup/docs/robot_description.md`](../../hbot_bringup/docs/robot_description.md)):
 
-   `hbot_bringup/launch/hbot_bringup.launch.py` (instead of reading
-   `urdf/hbot.urdf` and starting its own `robot_state_publisher`):
+1. **Driver wheels = model wheels.** `yahboom_driver_params.yaml` now has
+   `wheel_track: 0.19` (was 0.2) and `wheel_diameter` = 2 × `wheels.radius`
+   once the radius is measured. With the old 0.2 track, odometry under-reported
+   every turn by ~5 % and the robot turned ~5 % more than `/cmd_vel` asked.
+   `test_driver_wheels_match` fails whenever the two files drift apart
+   (`cad` entries are not compared).
+2. **`hbot_bringup` uses launch-time xacro.** `hbot_bringup.launch.py`
+   (real-robot mode) includes `description.launch.py` with `use_sim:=false`
+   instead of reading `urdf/hbot.urdf`. The Pi needs `ros-humble-xacro` at run
+   time (an `exec_depend`, installed by `rosdep`).
+
+Still open:
+
+3. **`hbot_simulation` to launch-time xacro (optional).** In
+   `hbot_house.launch.py`, replace the reading of `urdf/hbot_sim.urdf` and
+   the `robot_state_publisher` node with:
 
    ```python
    IncludeLaunchDescription(
      PythonLaunchDescriptionSource(os.path.join(
        get_package_share_directory('hbot_description'), 'launch', 'description.launch.py')),
-     launch_arguments={'use_sim': 'false', 'use_sim_time': use_sim_time}.items())
+     launch_arguments={'use_sim': 'true', 'use_sim_time': use_sim_time}.items())
    ```
 
-   `hbot_simulation/launch/hbot_house.launch.py`: the same with
-   `'use_sim': 'true'`; `spawn_entity.py -topic robot_description` stays as is.
-   The Pi then needs `ros-humble-xacro` at run time (it's already an
-   `exec_depend`). Until this is done, both keep using the installed
-   `hbot.urdf` / `hbot_sim.urdf`, which this branch still generates.
+   `spawn_entity.py -topic robot_description` stays as is. Until then it keeps
+   using the installed `hbot_sim.urdf`, which this package still generates.
 4. **Wheel joint states from the C++ driver.** Once `hbot_driver` publishes
    `/joint_states` for `left_wheel_joint` / `right_wheel_joint`, launch with
    `driver_joint_states:=true` so the wheels turn in RViz.

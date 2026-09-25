@@ -131,9 +131,11 @@ def test_meshes_exist(real):
     assert os.path.isfile(os.path.join(PKG, path[len(prefix):])), path
 
 
-def test_driver_wheel_track_matches(geometry):
-  # hbot_driver computes odometry from wheel_track; it must be the track the
-  # description (and so Gazebo) uses. Skipped when hbot_bringup isn't built.
+def test_driver_wheels_match(geometry):
+  # hbot_driver computes odometry from wheel_track and wheel_diameter; they
+  # must be the wheels the description (and so Gazebo) uses. `cad` entries
+  # aren't compared (the driver keeps its own value until one is measured).
+  # Skipped when hbot_bringup isn't built.
   from ament_index_python.packages import (PackageNotFoundError,
                                            get_package_share_directory)
   try:
@@ -149,3 +151,7 @@ def test_driver_wheel_track_matches(geometry):
   assert track == 'cad' or abs(driver['wheel_track'] - track) < TOL, (
     f"yahboom_driver_params.yaml wheel_track={driver['wheel_track']} but "
     f'config/hbot_geometry.yaml wheels.track={track}')
+  radius = geometry['wheels']['radius']
+  assert radius == 'cad' or abs(driver['wheel_diameter'] - 2 * radius) < TOL, (
+    f"yahboom_driver_params.yaml wheel_diameter={driver['wheel_diameter']} but "
+    f'config/hbot_geometry.yaml wheels.radius={radius} (diameter {2 * radius:g})')
