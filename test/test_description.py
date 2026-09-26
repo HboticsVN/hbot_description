@@ -1,7 +1,7 @@
 """Checks for the HBOT description (run with `colcon test`).
 
 They catch the ways the real-robot and the Gazebo descriptions, or the
-description and the driver, can drift apart. See docs/robot_description.md,
+description and the driver, can drift apart. See README.md,
 "Step 6: Test".
 """
 
@@ -98,15 +98,24 @@ def test_wheel_track_matches_geometry(sim, geometry):
   assert abs(origin(j['right_wheel_joint'])[1] + track / 2) < TOL
 
   plugin = next(p for g in sim.findall('gazebo') for p in g.findall('plugin')
-                if p.get('filename') == 'libgazebo_ros_diff_drive.so')
+                if p.get('filename') == 'gz-sim-diff-drive-system')
   assert abs(float(plugin.find('wheel_separation').text) - track) < TOL
   radius = origin(j['left_wheel_joint'])[2]
-  assert abs(float(plugin.find('wheel_diameter').text) - 2 * radius) < TOL
+  assert abs(float(plugin.find('wheel_radius').text) - radius) < TOL
+
+
+def test_no_gazebo_classic_plugins(sim):
+  # The simulation runs on gz sim (Fortress/Harmonic); Gazebo Classic
+  # `libgazebo_ros_*` plugins would be silently ignored there.
+  for plugin in sim.iter('plugin'):
+    assert not plugin.get('filename', '').startswith('libgazebo_ros'), plugin.get('filename')
 
 
 def test_lidar_matches_geometry(sim, geometry):
   spec = geometry['lidar_sensor']
   ray = sim.find("gazebo[@reference='laser']/sensor")
+  assert ray.get('type') == 'gpu_lidar'
+  assert ray.find('topic').text == 'scan'
   assert float(ray.find('update_rate').text) == spec['rate']
   assert int(ray.find('ray/scan/horizontal/samples').text) == spec['samples']
   assert float(ray.find('ray/range/min').text) == spec['range_min']

@@ -1,20 +1,20 @@
 <?xml version="1.0" ?>
-<!-- Gazebo (classic) extensions: materials, contact parameters, lidar + IMU
-     sensor plugins and the diff-drive plugin. Included from hbot.urdf.xacro
-     only with use_sim:=true, which defines every property used here
-     (lidar specs: `lidar_sensor` in config/hbot_geometry.yaml). -->
+<!-- Gazebo Sim (gz sim, formerly Ignition) extensions: contact parameters,
+     lidar + IMU sensors and the diff-drive / joint-state systems. Included
+     from hbot.urdf.xacro only with use_sim:=true, which defines every property
+     used here (lidar specs: `lidar_sensor` in config/hbot_geometry.yaml).
+
+     Plugin names use the Harmonic-style `gz-sim-*-system` / `gz::sim::systems`
+     spelling, which Fortress (6.16, the ros-humble-ros-gz default) also loads.
+     Everything is published on *gz* topics; hbot_simulation's
+     config/gz_bridge.yaml bridges them to ROS (/scan, /imu, /odom, /tf,
+     /joint_states, /cmd_vel, /clock).
+
+     Colours come from the URDF <material> of each visual (sdformat converts
+     them), so no Gazebo-Classic `Gazebo/*` script materials are needed. The
+     world must load the Sensors (ogre2) and Imu systems for the sensors below
+     to publish - see hbot_simulation/worlds/hbot_house.world. -->
 <robot xmlns:xacro="http://ros.org/wiki/xacro">
-
-  <gazebo reference="base_link">
-    <material>Gazebo/Blue</material>
-  </gazebo>
-
-  <gazebo reference="left_wheel_link">
-    <material>Gazebo/Black</material>
-  </gazebo>
-  <gazebo reference="right_wheel_link">
-    <material>Gazebo/Black</material>
-  </gazebo>
 
   <gazebo reference="front_caster">
     <mu1 value="0.001"/>
@@ -24,15 +24,20 @@
   </gazebo>
 
   <!-- YDLidar X3: 360 deg, 0.12-8 m, 3 kHz sampling at ~8 Hz scan rate
-       -> 3000 / 8 = 375 samples per revolution. -->
+       -> 3000 / 8 = 375 samples per revolution. gz sim only implements the
+       GPU (rendering-based) lidar. `laser` is merged into base_link when the
+       URDF is converted (fixed joint), so the frame id is set explicitly:
+       ignition_frame_id for Fortress, gz_frame_id for Garden+. -->
   <xacro:property name="lidar" value="${geo.lidar_sensor}"/>
 
   <gazebo reference="laser">
-    <material>Gazebo/DarkGrey</material>
-    <sensor name="lidar" type="ray">
+    <sensor name="lidar" type="gpu_lidar">
       <always_on>true</always_on>
       <visualize>false</visualize>
       <update_rate>${lidar.rate}</update_rate>
+      <topic>scan</topic>
+      <ignition_frame_id>laser</ignition_frame_id>
+      <gz_frame_id>laser</gz_frame_id>
       <ray>
         <scan>
           <horizontal>
@@ -41,6 +46,12 @@
             <min_angle>-3.141592653589793</min_angle>
             <max_angle>3.141592653589793</max_angle>
           </horizontal>
+          <vertical>
+            <samples>1</samples>
+            <resolution>1</resolution>
+            <min_angle>0</min_angle>
+            <max_angle>0</max_angle>
+          </vertical>
         </scan>
         <range>
           <min>${lidar.range_min}</min>
@@ -53,58 +64,49 @@
           <stddev>${lidar.noise_stddev}</stddev>
         </noise>
       </ray>
-      <plugin name="scan" filename="libgazebo_ros_ray_sensor.so">
-        <ros>
-          <remapping>~/out:=scan</remapping>
-        </ros>
-        <output_type>sensor_msgs/LaserScan</output_type>
-        <frame_name>laser</frame_name>
-      </plugin>
     </sensor>
   </gazebo>
 
   <!-- The EKF only runs on hardware (base_bringup.launch.py); in sim the
-       diff-drive plugin publishes odom->base_footprint directly, but the IMU
+       diff-drive system publishes odom->base_footprint directly, but the IMU
        is kept so the fused-odometry path can be exercised in sim if desired. -->
   <gazebo reference="imu_link">
     <sensor name="imu_sensor" type="imu">
       <always_on>true</always_on>
       <update_rate>200</update_rate>
       <visualize>false</visualize>
-      <plugin name="imu_plugin" filename="libgazebo_ros_imu_sensor.so">
-        <ros>
-          <remapping>~/out:=imu</remapping>
-        </ros>
-        <initial_orientation_as_reference>false</initial_orientation_as_reference>
-        <frame_name>imu_link</frame_name>
-      </plugin>
+      <topic>imu</topic>
+      <ignition_frame_id>imu_link</ignition_frame_id>
+      <gz_frame_id>imu_link</gz_frame_id>
     </sensor>
   </gazebo>
 
   <gazebo>
-    <plugin name="two_front_wheeled_diff_drive" filename="libgazebo_ros_diff_drive.so">
-      <update_rate>30</update_rate>
-
+    <plugin filename="gz-sim-diff-drive-system" name="gz::sim::systems::DiffDrive">
       <left_joint>left_wheel_joint</left_joint>
       <right_joint>right_wheel_joint</right_joint>
 
       <wheel_separation>${wheel_separation}</wheel_separation>
-      <wheel_diameter>${2 * wheel_radius}</wheel_diameter>
+      <wheel_radius>${wheel_radius}</wheel_radius>
 
-      <max_wheel_torque>20</max_wheel_torque>
-      <max_wheel_acceleration>1.0</max_wheel_acceleration>
+      <max_linear_acceleration>1.0</max_linear_acceleration>
+      <min_linear_acceleration>-1.0</min_linear_acceleration>
+      <max_angular_acceleration>4.0</max_angular_acceleration>
+      <min_angular_acceleration>-4.0</min_angular_acceleration>
 
-      <command_topic>cmd_vel</command_topic>
+      <topic>cmd_vel</topic>
+      <odom_topic>odom</odom_topic>
+      <tf_topic>tf</tf_topic>
+      <frame_id>odom</frame_id>
+      <child_frame_id>base_footprint</child_frame_id>
+      <odom_publish_frequency>30</odom_publish_frequency>
+    </plugin>
 
-      <publish_odom>true</publish_odom>
-      <publish_odom_tf>true</publish_odom_tf>
-      <publish_wheel_tf>true</publish_wheel_tf>
-
-      <odometry_topic>odom</odometry_topic>
-      <odometry_frame>odom</odometry_frame>
-      <robot_base_frame>base_footprint</robot_base_frame>
-
-      <odometry_source>1</odometry_source>
+    <!-- Wheel joint states -> robot_state_publisher (wheel TF). -->
+    <plugin filename="gz-sim-joint-state-publisher-system" name="gz::sim::systems::JointStatePublisher">
+      <topic>joint_states</topic>
+      <joint_name>left_wheel_joint</joint_name>
+      <joint_name>right_wheel_joint</joint_name>
     </plugin>
   </gazebo>
 

@@ -9,7 +9,7 @@ find_package(ament_cmake REQUIRED)
 # into the BUILD directory, and installed to share/hbot_description/urdf/:
 #   hbot.urdf      real robot            (xacro hbot.urdf.xacro)
 #   hbot_sim.urdf  Gazebo model          (xacro hbot.urdf.xacro use_sim:=true)
-#   hbot_sim.sdf   SDF export of the Gazebo model, only where `gz` exists
+#   hbot_sim.sdf   SDF export of the Gazebo model, only where `ign`/`gz` exists
 # Nothing is written into the source tree.
 find_program(XACRO xacro REQUIRED)
 set(HBOT_XACRO ${CMAKE_CURRENT_SOURCE_DIR}/urdf/hbot.urdf.xacro)
@@ -32,7 +32,8 @@ add_custom_command(
 set(HBOT_GENERATED ${HBOT_GEN_DIR}/hbot.urdf ${HBOT_GEN_DIR}/hbot_sim.urdf)
 
 # The Pi's arm64 image has no Gazebo, so the SDF is optional.
-find_program(GZ gz)
+# `ign sdf` on Fortress, `gz sdf` on Harmonic (and Classic).
+find_program(GZ NAMES ign gz)
 if(GZ)
   add_custom_command(
     OUTPUT ${HBOT_GEN_DIR}/hbot_sim.sdf
@@ -41,7 +42,7 @@ if(GZ)
     COMMENT "gz sdf -> hbot_sim.sdf")
   list(APPEND HBOT_GENERATED ${HBOT_GEN_DIR}/hbot_sim.sdf)
 else()
-  message(STATUS "gz not found - skipping hbot_sim.sdf")
+  message(STATUS "ign/gz not found - skipping hbot_sim.sdf")
 endif()
 add_custom_target(hbot_urdf ALL DEPENDS ${HBOT_GENERATED})
 
