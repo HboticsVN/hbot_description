@@ -10,7 +10,7 @@
 #
 # The hbot_driver parameters (hbot_bringup/config/yahboom_driver_params.yaml:
 # wheel_track, wheel_diameter) must describe the same wheels - see
-# docs/robot_description.md, "Keeping the driver in sync".
+# README.md, "Step 9: Follow-ups outside this package".
 
 wheels:
   track: 0.190        # tyre centre to tyre centre, measured on the robot (CAD: 0.1827)

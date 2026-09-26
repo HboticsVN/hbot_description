@@ -3,7 +3,7 @@
 
   <!-- ==========================================================================
        HBOT AMR - the single entry point of the robot description
-       (docs/robot_description.md):
+       (README.md):
 
          xacro hbot.urdf.xacro                -> real robot (robot_state_publisher
                                                  on the Pi, SLAM / Nav2 / RViz)
